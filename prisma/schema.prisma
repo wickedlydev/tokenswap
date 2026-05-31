@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String       @id @default(cuid())
+  email            String       @unique
+  name             String?
+  passwordHash     String
+  stripeCustomerId String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  listings         Listing[]
+  purchases        Purchase[]
+  vaults           ApiKeyVault[]
+}
+
+model ApiKeyVault {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String
+  label        String
+  encryptedKey String
+  iv           String
+  authTag      String
+  isValid      Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  listings     Listing[]
+}
+
+model Listing {
+  id                    String      @id @default(cuid())
+  sellerId              String
+  seller                User        @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  vaultId               String
+  vault                 ApiKeyVault @relation(fields: [vaultId], references: [id])
+  provider              String
+  model                 String
+  tokensForSale         Int
+  tokensRemaining       Int
+  pricePerMillionTokens Float
+  status                String      @default("active")
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  purchases             Purchase[]
+}
+
+model Purchase {
+  id               String      @id @default(cuid())
+  buyerId          String
+  buyer            User        @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  listingId        String
+  listing          Listing     @relation(fields: [listingId], references: [id])
+  proxyKey         String      @unique @default(cuid())
+  tokensPurchased  Int
+  tokensRemaining  Int
+  totalPaidCents   Int
+  platformFeeCents Int
+  stripeSessionId  String?
+  stripePaymentId  String?
+  status           String      @default("pending")
+  createdAt        DateTime    @default(now())
+  usageLogs        UsageLog[]
+}
+
+model UsageLog {
+  id               String   @id @default(cuid())
+  purchaseId       String
+  purchase         Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  model            String
+  requestDurationMs Int?
+  createdAt        DateTime @default(now())
+}
