@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Loader2, Trash2 } from 'lucide-react'
 import { ProviderBadge } from '@/components/shared/ProviderBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,9 +53,20 @@ export function VaultList({ vaults }: { vaults: VaultItem[] }) {
 
   async function handleDelete(id: string) {
     setDeletingId(id)
-    const res = await fetch(`/api/vault/${id}`, { method: 'DELETE' })
-    setDeletingId(null)
-    if (res.ok) router.refresh()
+    try {
+      const res = await fetch(`/api/vault/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string }
+        toast.error(data.error || 'Failed to delete key', { duration: 5000 })
+        return
+      }
+      toast.success('API key deleted', { duration: 3000 })
+      router.refresh()
+    } catch (error) {
+      toast.error('Network error. Please try again.', { duration: 5000 })
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   if (vaults.length === 0) {
@@ -112,7 +124,13 @@ export function VaultList({ vaults }: { vaults: VaultItem[] }) {
                       onClick={() => handleDelete(vault.id)}
                       disabled={deletingId === vault.id}
                     >
-                      Delete
+                      {deletingId === vault.id ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Deleting
+                        </span>
+                      ) : (
+                        'Delete'
+                      )}
                     </Button>
                   </DialogClose>
                 </DialogFooter>

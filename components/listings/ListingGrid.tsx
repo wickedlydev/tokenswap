@@ -20,7 +20,7 @@ export type ListingWithStats = {
 
 const defaultFilters: ListingFilterState = {
   provider: 'all',
-  model: '',
+  model: 'all',
   maxPrice: '',
   minTokens: '',
   sort: 'price_asc',
@@ -42,7 +42,7 @@ export function ListingGrid({ listings }: { listings: ListingWithStats[] }) {
 
     let result = listings.filter((listing) => {
       if (filters.provider !== 'all' && listing.provider !== filters.provider) return false
-      if (filters.model && listing.model !== filters.model) return false
+      if (filters.model !== 'all' && listing.model !== filters.model) return false
       if (Number.isFinite(maxPrice) && maxPrice > 0 && listing.pricePerMillionTokens > maxPrice) {
         return false
       }

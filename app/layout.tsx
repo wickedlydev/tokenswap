@@ -1,19 +1,21 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+import type { Metadata } from 'next'
+import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: "TokenSwap - Buy & Sell AI API Credits",
-  description: "Marketplace for selling unused AI API credits via secure proxy.",
-};
+  title: 'TokenSwap — Buy and sell AI API credits',
+  description:
+    'The marketplace for unused AI API tokens. Buy credits at 50%+ off retail. Sell your surplus and earn money.',
+}
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-      <body className="min-h-screen flex flex-col">{children}</body>
+    <html lang="en" className="antialiased">
+      <body className="min-h-screen bg-background text-foreground">
+        <TooltipProvider>{children}</TooltipProvider>
+        <Toaster />
+      </body>
     </html>
-  );
+  )
 }

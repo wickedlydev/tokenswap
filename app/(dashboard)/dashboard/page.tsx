@@ -1,76 +1,118 @@
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import Link from "next/link";
-import { ArrowRight, Tag, Coins, BarChart3 } from "lucide-react";
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
+import { getDashboardData } from './actions'
+import { StatCard } from '@/components/shared/StatCard'
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(value)
+}
 
 export default async function DashboardPage() {
-  const session = await auth();
-
-  const [purchases, listings] = await Promise.all([
-    db.purchase.findMany({ where: { buyerId: session?.user?.id } }),
-    db.listing.findMany({
-      where: { sellerId: session?.user?.id },
-      include: { purchases: { select: { tokensPurchased: true, status: true } } },
-    }),
-  ]);
-
-  const totalSold = listings.reduce((sum, l) => {
-    const sold = l.purchases.filter((p) => p.status !== "pending").reduce((s, p) => s + p.tokensPurchased, 0);
-    return sum + sold;
-  }, 0);
-
-  const totalTokensRemaining = purchases.filter((p) => p.status === "active").reduce((sum, p) => sum + p.tokensRemaining, 0);
-  const totalSpend = purchases.reduce((sum, p) => sum + p.totalPaidCents, 0);
-  const activeListings = listings.filter((l) => l.status === "active").length;
-
-  const cardClass = "rounded-xl border border-zinc-200 bg-white p-6";
+  const data = await getDashboardData()
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
         <h1 className="text-2xl font-bold text-zinc-900">Dashboard</h1>
-        <p className="text-zinc-500 mt-1">Welcome back, {session?.user?.name || session?.user?.email}</p>
+        <p className="mt-1 text-zinc-500">Welcome back, {data.userName ?? 'there'}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className={cardClass}>
-          <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2"><Tag className="h-4 w-4" /> Active Listings</div>
-          <div className="text-3xl font-bold text-zinc-900">{activeListings}</div>
-        </div>
-        <div className={cardClass}>
-          <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2"><Coins className="h-4 w-4" /> Tokens Sold</div>
-          <div className="text-3xl font-bold text-zinc-900">{totalSold.toLocaleString()}</div>
-        </div>
-        <div className={cardClass}>
-          <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2"><Coins className="h-4 w-4" /> Tokens Remaining</div>
-          <div className="text-3xl font-bold text-zinc-900">{totalTokensRemaining.toLocaleString()}</div>
-        </div>
-        <div className={cardClass}>
-          <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2"><BarChart3 className="h-4 w-4" /> Total Spend</div>
-          <div className="text-3xl font-bold text-zinc-900">${(totalSpend / 100).toFixed(2)}</div>
-        </div>
-      </div>
+      {data.sellerStats && (
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Seller stats</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Total listings" value={data.sellerStats.totalListings.toString()} />
+            <StatCard
+              label="Tokens listed"
+              value={data.sellerStats.tokensListed.toLocaleString()}
+            />
+            <StatCard
+              label="Total buyers"
+              value={data.sellerStats.totalBuyers.toLocaleString()}
+            />
+            <StatCard
+              label="Estimated earnings"
+              value={formatCurrency(data.sellerStats.estimatedEarnings)}
+            />
+          </div>
+        </section>
+      )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Link href="/dashboard/sell" className={`${cardClass} hover:border-purple-300 transition-colors group`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-zinc-900">Sell API Credits</h3>
-              <p className="text-sm text-zinc-500 mt-1">List your unused tokens for sale</p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-zinc-400 group-hover:text-purple-500 transition-colors" />
+      {data.buyerStats && (
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Buyer stats</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Active keys" value={data.buyerStats.activeKeys.toString()} />
+            <StatCard
+              label="Tokens remaining"
+              value={data.buyerStats.totalTokensRemaining.toLocaleString()}
+            />
+            <StatCard
+              label="Total spent"
+              value={formatCurrency(data.buyerStats.totalSpent / 100)}
+            />
+            <StatCard
+              label="Tokens used"
+              value={data.buyerStats.totalTokensUsed.toLocaleString()}
+            />
           </div>
-        </Link>
-        <Link href="/dashboard/buy" className={`${cardClass} hover:border-purple-300 transition-colors group`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-zinc-900">Buy API Credits</h3>
-              <p className="text-sm text-zinc-500 mt-1">Browse marketplace listings</p>
+        </section>
+      )}
+
+      {data.isNewUser && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-zinc-900">Getting started</h2>
+          <div className="mt-4 space-y-3 text-sm text-zinc-600">
+            <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3">
+              <span>Add an API key</span>
+              <Link className="text-violet-600" href="/sell">
+                Go →
+              </Link>
             </div>
-            <ArrowRight className="h-5 w-5 text-zinc-400 group-hover:text-purple-500 transition-colors" />
+            <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3">
+              <span>Create your first listing</span>
+              <Link className="text-violet-600" href="/sell">
+                Go →
+              </Link>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3 text-zinc-400">
+              <span>Share and earn</span>
+              <span>Locked</span>
+            </div>
           </div>
-        </Link>
-      </div>
+        </section>
+      )}
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-zinc-900">Recent activity</h2>
+          <Link className="text-sm text-violet-600" href="/buy">
+            View marketplace <ArrowRight className="inline h-4 w-4" />
+          </Link>
+        </div>
+        {data.recentActivity.length === 0 ? (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500">
+            No activity yet. Once you buy or sell tokens, you will see updates here.
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+            <ul className="space-y-4">
+              {data.recentActivity.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-4">
+                  <span className="text-sm text-zinc-700">{item.label}</span>
+                  <span className="text-xs text-zinc-400">
+                    {new Date(item.createdAt).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
     </div>
-  );
+  )
 }

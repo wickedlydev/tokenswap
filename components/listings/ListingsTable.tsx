@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MoreVertical } from 'lucide-react'
+import { toast } from 'sonner'
+import { Loader2, MoreVertical } from 'lucide-react'
 import { ProviderBadge } from '@/components/shared/ProviderBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -66,35 +67,70 @@ export function ListingsTable({ listings }: { listings: ListingItem[] }) {
 
   async function updateStatus(listing: ListingItem, nextStatus: 'active' | 'paused') {
     setWorkingId(listing.id)
-    await fetch(`/api/listings/${listing.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: nextStatus }),
-    })
-    setWorkingId(null)
-    router.refresh()
+    try {
+      const res = await fetch(`/api/listings/${listing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      })
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string }
+        toast.error(data.error || 'Failed to update listing', { duration: 5000 })
+        return
+      }
+      toast.success(nextStatus === 'paused' ? 'Listing paused' : 'Listing activated', {
+        duration: 3000,
+      })
+      router.refresh()
+    } catch (error) {
+      toast.error('Network error. Please try again.', { duration: 5000 })
+    } finally {
+      setWorkingId(null)
+    }
   }
 
   async function updatePrice() {
     if (!editing) return
     setWorkingId(editing.id)
-    await fetch(`/api/listings/${editing.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pricePerMillionTokens: price }),
-    })
-    setWorkingId(null)
-    setEditing(null)
-    router.refresh()
+    try {
+      const res = await fetch(`/api/listings/${editing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pricePerMillionTokens: price }),
+      })
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string }
+        toast.error(data.error || 'Failed to update price', { duration: 5000 })
+        return
+      }
+      toast.success('Price updated', { duration: 3000 })
+      setEditing(null)
+      router.refresh()
+    } catch (error) {
+      toast.error('Network error. Please try again.', { duration: 5000 })
+    } finally {
+      setWorkingId(null)
+    }
   }
 
   async function deleteListing(id: string) {
     const confirmed = window.confirm('Delete this listing? This cannot be undone.')
     if (!confirmed) return
     setWorkingId(id)
-    await fetch(`/api/listings/${id}`, { method: 'DELETE' })
-    setWorkingId(null)
-    router.refresh()
+    try {
+      const res = await fetch(`/api/listings/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string }
+        toast.error(data.error || 'Failed to delete listing', { duration: 5000 })
+        return
+      }
+      toast.success('Listing deleted', { duration: 3000 })
+      router.refresh()
+    } catch (error) {
+      toast.error('Network error. Please try again.', { duration: 5000 })
+    } finally {
+      setWorkingId(null)
+    }
   }
 
   if (listings.length === 0) {
@@ -206,7 +242,13 @@ export function ListingsTable({ listings }: { listings: ListingItem[] }) {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={updatePrice} disabled={workingId === editing?.id}>
-              Save changes
+              {workingId === editing?.id ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Saving
+                </span>
+              ) : (
+                'Save changes'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

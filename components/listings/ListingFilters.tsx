@@ -34,7 +34,7 @@ export function ListingFilters({ filters, models, onChange }: ListingFiltersProp
             onChange({
               ...filters,
               provider: value as ListingFilterState['provider'],
-              model: '',
+              model: 'all',
             })
           }
         >
@@ -73,7 +73,7 @@ export function ListingFilters({ filters, models, onChange }: ListingFiltersProp
             <SelectValue placeholder="All models" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All models</SelectItem>
+            <SelectItem value="all">All models</SelectItem>
             {models.map((model) => (
               <SelectItem key={model} value={model}>
                 {model}

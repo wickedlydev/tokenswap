@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
+import { ChevronRight, Loader2 } from 'lucide-react'
 import { PROVIDERS } from '@/lib/providers'
 import { ProviderBadge } from '@/components/shared/ProviderBadge'
 import { Badge } from '@/components/ui/badge'
@@ -99,29 +100,37 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
     setSubmitting(true)
     setError('')
 
-    const res = await fetch('/api/listings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        vaultId: values.vaultId,
-        provider: selectedVault.provider,
-        model: values.model,
-        tokensForSale: values.tokensForSale,
-        pricePerMillionTokens: values.pricePerMillionTokens,
-      }),
-    })
+    try {
+      const res = await fetch('/api/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vaultId: values.vaultId,
+          provider: selectedVault.provider,
+          model: values.model,
+          tokensForSale: values.tokensForSale,
+          pricePerMillionTokens: values.pricePerMillionTokens,
+        }),
+      })
 
-    const data = (await res.json()) as { error?: string }
+      const data = (await res.json()) as { error?: string }
 
-    if (!res.ok) {
-      setError(data.error || 'Failed to create listing')
+      if (!res.ok) {
+        setError(data.error || 'Failed to create listing')
+        toast.error(data.error || 'Failed to create listing', { duration: 5000 })
+        setSubmitting(false)
+        return
+      }
+
+      toast.success('Listing created!', { duration: 3000 })
+      router.refresh()
       setSubmitting(false)
-      return
+      setOpen(false)
+    } catch (error) {
+      setError('Network error. Please try again.')
+      toast.error('Network error. Please try again.', { duration: 5000 })
+      setSubmitting(false)
     }
-
-    router.refresh()
-    setSubmitting(false)
-    setOpen(false)
   }
 
   return (
@@ -133,7 +142,7 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="h-[100dvh] w-full max-w-none overflow-y-auto rounded-none sm:h-auto sm:max-w-3xl sm:rounded-xl">
         {step === 1 && (
           <div className="space-y-5">
             <div>
@@ -336,8 +345,15 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
                 onClick={form.handleSubmit(handleCreate)}
                 className="gap-2"
               >
-                {submitting ? 'Creating...' : 'Create Listing'}
-                {!submitting && <ChevronRight className="h-4 w-4" />}
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Creating...
+                  </span>
+                ) : (
+                  <>
+                    Create Listing <ChevronRight className="h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>

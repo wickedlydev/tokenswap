@@ -1,19 +1,136 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+import { encrypt } from '../lib/crypto'
 
-const db = new PrismaClient();
+const db = new PrismaClient()
 
 async function main() {
-  const ph = await bcrypt.hash("demo1234", 12);
-  const s1 = await db.user.upsert({ where: { email: "seller1@demo.com" }, update: {}, create: { email: "seller1@demo.com", name: "Alice", passwordHash: ph } });
-  const s2 = await db.user.upsert({ where: { email: "seller2@demo.com" }, update: {}, create: { email: "seller2@demo.com", name: "Bob", passwordHash: ph } });
-  await db.user.upsert({ where: { email: "buyer@demo.com" }, update: {}, create: { email: "buyer@demo.com", name: "Charlie", passwordHash: ph } });
-  await db.apiKeyVault.upsert({ where: { id: "vs1" }, update: {}, create: { id: "vs1", userId: s1.id, provider: "openai", label: "OpenAI", encryptedKey: "x", iv: "a1b2c3d4e5f6", authTag: "f1e2d3c4" } });
-  await db.apiKeyVault.upsert({ where: { id: "vs2" }, update: {}, create: { id: "vs2", userId: s1.id, provider: "anthropic", label: "Anthropic", encryptedKey: "x", iv: "b1c2d3e4e5", authTag: "e1d2c3b4" } });
-  await db.apiKeyVault.upsert({ where: { id: "vs3" }, update: {}, create: { id: "vs3", userId: s2.id, provider: "openai", label: "GPT-4", encryptedKey: "x", iv: "c1d2e3e4", authTag: "d1c2b3a4" } });
-  await db.listing.upsert({ where: { id: "ls1" }, update: {}, create: { id: "ls1", sellerId: s1.id, vaultId: "vs1", provider: "openai", model: "gpt-4o", tokensForSale: 5000000, pricePerMillionTokens: 800, status: "active" } });
-  await db.listing.upsert({ where: { id: "ls2" }, update: {}, create: { id: "ls2", sellerId: s1.id, vaultId: "vs2", provider: "anthropic", model: "claude-3-5-sonnet", tokensForSale: 10000000, pricePerMillionTokens: 500, status: "active" } });
-  await db.listing.upsert({ where: { id: "ls3" }, update: {}, create: { id: "ls3", sellerId: s2.id, vaultId: "vs3", provider: "openai", model: "gpt-4o-mini", tokensForSale: 8000000, pricePerMillionTokens: 30, status: "active" } });
-  console.log("Seed done");
+  await db.usageLog.deleteMany()
+  await db.purchase.deleteMany()
+  await db.listing.deleteMany()
+  await db.apiKeyVault.deleteMany()
+  await db.user.deleteMany()
+
+  const passwordHash = await bcrypt.hash('Demo1234!', 12)
+
+  const seller1 = await db.user.create({
+    data: { email: 'seller1@demo.com', name: 'Seller One', passwordHash },
+  })
+  const seller2 = await db.user.create({
+    data: { email: 'seller2@demo.com', name: 'Seller Two', passwordHash },
+  })
+  const buyer = await db.user.create({
+    data: { email: 'buyer@demo.com', name: 'Buyer', passwordHash },
+  })
+
+  const fakeOpenAI = encrypt('sk-fake-demo-key')
+  const fakeAnthropic = encrypt('sk-fake-demo-key')
+
+  const openAiVault = await db.apiKeyVault.create({
+    data: {
+      userId: seller1.id,
+      provider: 'openai',
+      label: 'Seller1 OpenAI Key',
+      encryptedKey: fakeOpenAI.encryptedKey,
+      iv: fakeOpenAI.iv,
+      authTag: fakeOpenAI.authTag,
+      isValid: true,
+    },
+  })
+
+  const anthropicVault = await db.apiKeyVault.create({
+    data: {
+      userId: seller2.id,
+      provider: 'anthropic',
+      label: 'Seller2 Anthropic Key',
+      encryptedKey: fakeAnthropic.encryptedKey,
+      iv: fakeAnthropic.iv,
+      authTag: fakeAnthropic.authTag,
+      isValid: true,
+    },
+  })
+
+  await db.listing.create({
+    data: {
+      sellerId: seller1.id,
+      vaultId: openAiVault.id,
+      provider: 'openai',
+      model: 'gpt-4o',
+      tokensForSale: 2_000_000,
+      tokensRemaining: 2_000_000,
+      pricePerMillionTokens: 3.0,
+      status: 'active',
+    },
+  })
+
+  const listingMini = await db.listing.create({
+    data: {
+      sellerId: seller1.id,
+      vaultId: openAiVault.id,
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      tokensForSale: 5_000_000,
+      tokensRemaining: 5_000_000,
+      pricePerMillionTokens: 0.09,
+      status: 'active',
+    },
+  })
+
+  await db.listing.create({
+    data: {
+      sellerId: seller2.id,
+      vaultId: anthropicVault.id,
+      provider: 'anthropic',
+      model: 'claude-3-5-sonnet-20241022',
+      tokensForSale: 1_000_000,
+      tokensRemaining: 1_000_000,
+      pricePerMillionTokens: 1.8,
+      status: 'active',
+    },
+  })
+
+  const tokensPurchased = 1_000_000
+  const subtotal = (tokensPurchased / 1_000_000) * listingMini.pricePerMillionTokens
+  const platformFeeCents = Math.round(subtotal * 0.1 * 100)
+  const totalPaidCents = Math.round((subtotal + subtotal * 0.1) * 100)
+
+  const purchase = await db.purchase.create({
+    data: {
+      buyerId: buyer.id,
+      listingId: listingMini.id,
+      tokensPurchased,
+      tokensRemaining: 850_000,
+      totalPaidCents,
+      platformFeeCents,
+      status: 'active',
+    },
+  })
+
+  await db.listing.update({
+    where: { id: listingMini.id },
+    data: { tokensRemaining: listingMini.tokensRemaining - tokensPurchased },
+  })
+
+  const usageSeed = [50_000, 40_000, 30_000, 20_000, 10_000]
+  for (const totalTokens of usageSeed) {
+    await db.usageLog.create({
+      data: {
+        purchaseId: purchase.id,
+        promptTokens: Math.floor(totalTokens * 0.6),
+        completionTokens: Math.floor(totalTokens * 0.4),
+        totalTokens,
+        model: listingMini.model,
+        requestDurationMs: 1200,
+      },
+    })
+  }
+
+  console.log('Seed complete')
 }
-main().catch((e) => { console.error(e); process.exit(1); }).finally(() => db.$disconnect());
+
+main()
+  .catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+  .finally(() => db.$disconnect())

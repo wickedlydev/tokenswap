@@ -24,6 +24,7 @@ export async function GET(
     return NextResponse.json({
       data: {
         id: purchase.id,
+        listingId: purchase.listingId,
         proxyKey: `ts-${purchase.proxyKey}`,
         tokensPurchased: purchase.tokensPurchased,
         tokensRemaining: purchase.tokensRemaining,

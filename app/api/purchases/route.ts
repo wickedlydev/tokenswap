@@ -17,6 +17,7 @@ export async function GET() {
 
     const data = purchases.map((purchase) => ({
       id: purchase.id,
+      listingId: purchase.listingId,
       proxyKey: null,
       tokensPurchased: purchase.tokensPurchased,
       tokensRemaining: purchase.tokensRemaining,

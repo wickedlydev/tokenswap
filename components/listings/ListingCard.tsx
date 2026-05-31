@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { ArrowRight, Loader2 } from 'lucide-react'
 import { PROVIDERS } from '@/lib/providers'
 import { ProviderBadge } from '@/components/shared/ProviderBadge'
 import { Button } from '@/components/ui/button'
@@ -47,6 +48,14 @@ export function ListingCard({ listing }: ListingCardProps) {
   const minTokens = 100_000
   const effectiveMin = Math.min(minTokens, maxTokens)
   const canBuy = maxTokens >= minTokens
+  useEffect(() => {
+    if (maxTokens <= 0) return
+    setTokenAmount((current) => {
+      const clamped = Math.min(Math.max(current, effectiveMin), maxTokens)
+      return clamped
+    })
+  }, [effectiveMin, maxTokens])
+
 
   const subtotal = (tokenAmount / 1_000_000) * listing.pricePerMillionTokens
   const platformFee = subtotal * 0.1
@@ -54,16 +63,24 @@ export function ListingCard({ listing }: ListingCardProps) {
 
   async function handleCheckout() {
     setSubmitting(true)
-    const res = await fetch('/api/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listingId: listing.id, tokenAmount }),
-    })
-    const data = (await res.json()) as { data?: { url?: string }; error?: string }
-    setSubmitting(false)
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: listing.id, tokenAmount }),
+      })
+      const data = (await res.json()) as { data?: { url?: string }; error?: string }
 
-    if (res.ok && data.data?.url) {
-      window.location.href = data.data.url
+      if (res.ok && data.data?.url) {
+        window.location.href = data.data.url
+        return
+      }
+
+      toast.error(data.error || 'Failed to create checkout session', { duration: 5000 })
+    } catch (error) {
+      toast.error('Network error. Please try again.', { duration: 5000 })
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -170,7 +187,13 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
 
           <Button className="w-full" disabled={!canBuy || submitting} onClick={handleCheckout}>
-            {submitting ? 'Creating checkout...' : 'Pay with Stripe'}
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Creating checkout...
+              </span>
+            ) : (
+              'Pay with Stripe'
+            )}
           </Button>
           {!canBuy && (
             <p className="text-xs text-rose-500">

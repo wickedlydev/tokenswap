@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { CheckCircle2, Eye, EyeOff, Shield, XCircle } from 'lucide-react'
+import { toast } from 'sonner'
+import { CheckCircle2, Eye, EyeOff, Loader2, Shield, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
@@ -55,23 +56,30 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
     setSubmitting(true)
     setResult(null)
 
-    const res = await fetch('/api/vault', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
-    })
+    try {
+      const res = await fetch('/api/vault', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      })
 
-    const data = (await res.json()) as { error?: string }
+      const data = (await res.json()) as { error?: string }
 
-    if (res.ok) {
-      setResult({ status: 'success', message: 'Key added successfully!' })
-      router.refresh()
-    } else {
-      setResult({ status: 'error', message: data.error || 'Failed to add key' })
+      if (res.ok) {
+        setResult({ status: 'success', message: 'Key added successfully!' })
+        toast.success('Key added successfully', { duration: 3000 })
+        router.refresh()
+      } else {
+        setResult({ status: 'error', message: data.error || 'Failed to add key' })
+        toast.error(data.error || 'Failed to add key', { duration: 5000 })
+      }
+    } catch (error) {
+      setResult({ status: 'error', message: 'Network error. Please try again.' })
+      toast.error('Network error. Please try again.', { duration: 5000 })
+    } finally {
+      setSubmitting(false)
+      setStep(3)
     }
-
-    setSubmitting(false)
-    setStep(3)
   }
 
   return (
@@ -83,7 +91,7 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="h-[100dvh] w-full max-w-none overflow-y-auto rounded-none sm:h-auto sm:max-w-xl sm:rounded-xl">
         {step === 1 && (
           <div className="space-y-5">
             <div>
@@ -161,7 +169,13 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
                 Back
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Validating...' : 'Validate key'}
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Validating...
+                  </span>
+                ) : (
+                  'Validate key'
+                )}
               </Button>
             </div>
           </form>
