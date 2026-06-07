@@ -41,6 +41,38 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Email confirmation does not match' }, { status: 400 })
     }
 
+    const [activeBuyerPurchases, ownActivePurchases] = await Promise.all([
+      db.purchase.count({
+        where: {
+          status: { in: ['active', 'pending'] },
+          listing: { sellerId: session.user.id },
+        },
+      }),
+      db.purchase.count({
+        where: { buyerId: session.user.id, status: 'active' },
+      }),
+    ])
+
+    if (activeBuyerPurchases > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Cannot delete account while buyers have active proxy keys against your listings. Pause your listings and wait for purchases to deplete or contact support.',
+        },
+        { status: 409 }
+      )
+    }
+
+    if (ownActivePurchases > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Cannot delete account while you have active proxy keys. Let them deplete or contact support.',
+        },
+        { status: 409 }
+      )
+    }
+
     await db.user.delete({ where: { id: session.user.id } })
     return NextResponse.json({ data: { deleted: true } })
   } catch (error) {

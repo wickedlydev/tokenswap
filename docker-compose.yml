@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: tokenswap
+      POSTGRES_PASSWORD: tokenswap
+      POSTGRES_DB: tokenswap
+    ports:
+      - '5432:5432'
+    volumes:
+      - tokenswap_pg:/var/lib/postgresql/data
+
+volumes:
+  tokenswap_pg:

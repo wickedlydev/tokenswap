@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { toUsageLogDTO } from '@/lib/serializers'
 
 export async function GET(request: Request) {
   const session = await auth()
@@ -31,17 +32,7 @@ export async function GET(request: Request) {
       take: 50,
     })
 
-    const data = logs.map((log) => ({
-      id: log.id,
-      promptTokens: log.promptTokens,
-      completionTokens: log.completionTokens,
-      totalTokens: log.totalTokens,
-      model: log.model,
-      requestDurationMs: log.requestDurationMs,
-      createdAt: log.createdAt.toISOString(),
-    }))
-
-    return NextResponse.json({ data })
+    return NextResponse.json({ data: logs.map(toUsageLogDTO) })
   } catch (error) {
     console.error('[USAGE_GET]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

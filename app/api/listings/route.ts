@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { toListingDTO } from '@/lib/serializers'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -36,17 +37,7 @@ export async function GET(request: Request) {
       orderBy,
     })
 
-    const data = listings.map((listing) => ({
-      id: listing.id,
-      provider: listing.provider,
-      model: listing.model,
-      tokensForSale: listing.tokensForSale,
-      tokensRemaining: listing.tokensRemaining,
-      pricePerMillionTokens: listing.pricePerMillionTokens,
-      status: listing.status,
-      createdAt: listing.createdAt.toISOString(),
-      sellerName: listing.seller.name ?? 'Anonymous',
-    }))
+    const data = listings.map((l) => toListingDTO(l, l.seller.name ?? 'Anonymous'))
 
     return NextResponse.json({ data })
   } catch (error) {
@@ -104,19 +95,7 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(
-      {
-        data: {
-          id: listing.id,
-          provider: listing.provider,
-          model: listing.model,
-          tokensForSale: listing.tokensForSale,
-          tokensRemaining: listing.tokensRemaining,
-          pricePerMillionTokens: listing.pricePerMillionTokens,
-          status: listing.status,
-          createdAt: listing.createdAt.toISOString(),
-          sellerName: null,
-        },
-      },
+      { data: toListingDTO(listing, null) },
       { status: 201 }
     )
   } catch (error) {

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "superpowers@git+https://github.com/obra/superpowers.git",
+    "C:/Users/User/node_modules/ecc-universal/.opencode/dist/index.js"
+  ],
+  "skills": {
+    "paths": ["C:/Users/User/node_modules/ecc-universal/skills"]
+  },
+  "instructions": ["C:/Users/User/node_modules/ecc-universal/AGENTS.md"]
+}

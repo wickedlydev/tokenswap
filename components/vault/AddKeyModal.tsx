@@ -8,17 +8,10 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { CheckCircle2, Eye, EyeOff, Loader2, Shield, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 
-const providers = [
-  { id: 'openai', name: 'OpenAI', description: 'GPT-4o, GPT-4o-mini and more' },
-  { id: 'anthropic', name: 'Anthropic', description: 'Claude 3.5 Sonnet, Haiku and more' },
-] as const
-
 const formSchema = z.object({
-  provider: z.enum(['openai', 'anthropic']),
   label: z.string().min(2, 'Label is required'),
   apiKey: z.string().min(20, 'API key must be at least 20 characters'),
 })
@@ -32,24 +25,20 @@ type AddKeyModalProps = {
 export function AddKeyModal({ trigger }: AddKeyModalProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [step, setStep] = useState(1)
   const [showKey, setShowKey] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { provider: 'openai', label: '', apiKey: '' },
+    defaultValues: { label: '', apiKey: '' },
   })
 
-  const selectedProvider = form.watch('provider')
-
   function resetState() {
-    setStep(1)
     setShowKey(false)
     setSubmitting(false)
     setResult(null)
-    form.reset({ provider: 'openai', label: '', apiKey: '' })
+    form.reset({ label: '', apiKey: '' })
   }
 
   async function onSubmit(values: FormValues) {
@@ -60,7 +49,7 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
       const res = await fetch('/api/vault', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ provider: 'openai', ...values }),
       })
 
       const data = (await res.json()) as { error?: string }
@@ -73,13 +62,16 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
         setResult({ status: 'error', message: data.error || 'Failed to add key' })
         toast.error(data.error || 'Failed to add key', { duration: 5000 })
       }
-    } catch (error) {
+    } catch {
       setResult({ status: 'error', message: 'Network error. Please try again.' })
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setSubmitting(false)
-      setStep(3)
     }
+  }
+
+  function handleClose() {
+    setOpen(false)
   }
 
   return (
@@ -92,44 +84,16 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="h-[100dvh] w-full max-w-none overflow-y-auto rounded-none sm:h-auto sm:max-w-xl sm:rounded-xl">
-        {step === 1 && (
-          <div className="space-y-5">
-            <div>
-              <h3 className="text-lg font-semibold text-zinc-900">Select provider</h3>
-              <p className="text-sm text-zinc-500">
-                Choose the API provider for the key you want to sell.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {providers.map((provider) => (
-                <Card
-                  key={provider.id}
-                  className={`cursor-pointer border p-4 transition hover:border-violet-300 ${
-                    selectedProvider === provider.id ? 'border-violet-400 bg-violet-50/40' : 'border-zinc-200'
-                  }`}
-                  onClick={() => form.setValue('provider', provider.id)}
-                >
-                  <p className="text-sm font-semibold text-zinc-900">{provider.name}</p>
-                  <p className="mt-1 text-xs text-zinc-500">{provider.description}</p>
-                </Card>
-              ))}
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setStep(2)}>Continue</Button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
+        {!result && (
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900">Enter key details</h3>
-              <p className="text-sm text-zinc-500">
+              <h3 className="text-lg font-semibold text-foreground">Add your OpenAI key</h3>
+              <p className="text-sm text-muted-foreground">
                 We verify your API key before saving it to your vault.
               </p>
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-700">Label</label>
+              <label className="text-sm font-medium text-foreground">Label</label>
               <Input
                 {...form.register('label')}
                 placeholder="My main OpenAI key"
@@ -140,7 +104,7 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-700">API Key</label>
+              <label className="text-sm font-medium text-foreground">API Key</label>
               <div className="relative mt-1">
                 <Input
                   {...form.register('apiKey')}
@@ -151,7 +115,7 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
                 <button
                   type="button"
                   onClick={() => setShowKey((prev) => !prev)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -164,10 +128,7 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
               <Shield className="h-4 w-4" />
               Encrypted with AES-256-GCM. Never shared with buyers.
             </div>
-            <div className="flex items-center justify-between">
-              <Button type="button" variant="outline" onClick={() => setStep(1)}>
-                Back
-              </Button>
+            <div className="flex items-center justify-end gap-2">
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
                   <span className="flex items-center gap-2">
@@ -181,7 +142,7 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
           </form>
         )}
 
-        {step === 3 && result && (
+        {result && (
           <div className="space-y-5 text-center">
             <div className="flex justify-center">
               {result.status === 'success' ? (
@@ -191,18 +152,18 @@ export function AddKeyModal({ trigger }: AddKeyModalProps) {
               )}
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900">
+              <h3 className="text-lg font-semibold text-foreground">
                 {result.status === 'success' ? 'Success!' : 'Something went wrong'}
               </h3>
-              <p className="text-sm text-zinc-500">{result.message}</p>
+              <p className="text-sm text-muted-foreground">{result.message}</p>
             </div>
             <div className="flex justify-center gap-2">
               {result.status === 'error' && (
-                <Button variant="outline" onClick={() => setStep(2)}>
+                <Button variant="outline" onClick={() => setResult(null)}>
                   Try again
                 </Button>
               )}
-              <Button onClick={() => setOpen(false)}>Close</Button>
+              <Button onClick={handleClose}>Close</Button>
             </div>
           </div>
         )}

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 
 export type ListingFilterState = {
-  provider: 'all' | 'openai' | 'anthropic' | 'groq'
+  provider: 'all' | 'openai'
   model: string
   maxPrice: string
   minTokens: string
@@ -26,7 +26,7 @@ type ListingFiltersProps = {
 
 export function ListingFilters({ filters, models, onChange }: ListingFiltersProps) {
   return (
-    <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4">
+    <div className="space-y-4 rounded-xl border border-border bg-card p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <Tabs
           value={filters.provider}
@@ -41,8 +41,6 @@ export function ListingFilters({ filters, models, onChange }: ListingFiltersProp
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="openai">OpenAI</TabsTrigger>
-            <TabsTrigger value="anthropic">Anthropic</TabsTrigger>
-            <TabsTrigger value="groq">Groq</TabsTrigger>
           </TabsList>
         </Tabs>
 

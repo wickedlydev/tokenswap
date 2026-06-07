@@ -102,6 +102,7 @@ export async function getDashboardData() {
     ? {
         totalListings: activeListings.length,
         tokensListed,
+        tokensSold,
         totalBuyers,
         estimatedEarnings,
       }

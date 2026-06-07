@@ -31,15 +31,15 @@ export function KeysClient({ purchases, showSuccess }: { purchases: PurchaseItem
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">My Proxy Keys</h1>
-        <p className="mt-1 text-zinc-500">View and manage your purchased proxy API keys</p>
+        <h1 className="text-2xl font-bold text-foreground">My Proxy Keys</h1>
+        <p className="mt-1 text-muted-foreground">View and manage your purchased proxy API keys</p>
       </div>
 
       {purchases.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center">
-          <Key className="mx-auto h-12 w-12 text-zinc-300" />
-          <h3 className="mt-4 text-lg font-semibold text-zinc-900">No proxy keys yet</h3>
-          <p className="mt-2 text-sm text-zinc-500">Browse the marketplace to buy tokens.</p>
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <Key className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold text-foreground">No proxy keys yet</h3>
+          <p className="mt-2 text-sm text-muted-foreground">Browse the marketplace to buy tokens.</p>
         </div>
       ) : (
         <div className="space-y-4">

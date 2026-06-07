@@ -48,6 +48,8 @@ const statusClasses: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-700',
   depleted: 'bg-rose-100 text-rose-700',
   pending: 'bg-amber-100 text-amber-700',
+  pending_refund: 'bg-amber-100 text-amber-700',
+  refunded: 'bg-zinc-200 text-zinc-600',
 }
 
 function formatDate(value: string) {
@@ -90,7 +92,7 @@ export function PurchaseCard({ purchase }: { purchase: PurchaseItem }) {
       } else if (!res.ok) {
         toast.error(data.error || 'Failed to load proxy key', { duration: 5000 })
       }
-    } catch (error) {
+    } catch {
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setLoadingKey(false)
@@ -116,7 +118,7 @@ export function PurchaseCard({ purchase }: { purchase: PurchaseItem }) {
         setUsageLogs([])
         toast.error(data.error || 'Failed to load usage', { duration: 5000 })
       }
-    } catch (error) {
+    } catch {
       setUsageLogs([])
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
@@ -138,17 +140,17 @@ export function PurchaseCard({ purchase }: { purchase: PurchaseItem }) {
   }, [usageLogs])
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <ProviderBadge provider={purchase.listing.provider} />
-            <span className="text-sm font-semibold text-zinc-900">
+            <span className="text-sm font-semibold text-foreground">
               {purchase.listing.model}
             </span>
           </div>
           <Badge className={statusClasses[purchase.status] || 'bg-zinc-100 text-zinc-600'}>
-            {purchase.status}
+            {purchase.status === 'pending_refund' ? 'pending refund' : purchase.status}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
@@ -165,10 +167,16 @@ export function PurchaseCard({ purchase }: { purchase: PurchaseItem }) {
 
       <div className="mt-4">
         <UsageBar tokensPurchased={purchase.tokensPurchased} tokensRemaining={purchase.tokensRemaining} />
-        <p className="mt-2 text-xs text-zinc-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           {usedTokens.toLocaleString()} / {purchase.tokensPurchased.toLocaleString()} tokens used
         </p>
       </div>
+
+      {purchase.status === 'pending_refund' && (
+        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          Purchase pending refund — listing was unavailable. Contact support.
+        </div>
+      )}
 
       {expanded && (
         <div className="mt-6">
@@ -185,9 +193,9 @@ export function PurchaseCard({ purchase }: { purchase: PurchaseItem }) {
             </TabsList>
 
             <TabsContent value="integration" className="mt-4">
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <div className="rounded-xl border border-border bg-muted p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-sm font-mono text-zinc-900">
+                  <div className="text-sm font-mono text-foreground">
                     {showKey && proxyKey ? proxyKey : maskedKey}
                   </div>
                   <div className="flex items-center gap-1">
@@ -246,9 +254,9 @@ const openai = new OpenAI({
             </TabsContent>
 
             <TabsContent value="usage" className="mt-4">
-              {usageLoading && <p className="text-sm text-zinc-500">Loading usage...</p>}
+              {usageLoading && <p className="text-sm text-muted-foreground">Loading usage...</p>}
               {!usageLoading && usageLogs && usageLogs.length === 0 && (
-                <p className="text-sm text-zinc-500">No requests yet — start using your proxy key.</p>
+                <p className="text-sm text-muted-foreground">No requests yet — start using your proxy key.</p>
               )}
               {!usageLoading && usageLogs && usageLogs.length > 0 && (
                 <Table>

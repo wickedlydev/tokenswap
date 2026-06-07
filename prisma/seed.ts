@@ -23,29 +23,29 @@ async function main() {
     data: { email: 'buyer@demo.com', name: 'Buyer', passwordHash },
   })
 
-  const fakeOpenAI = encrypt('sk-fake-demo-key')
-  const fakeAnthropic = encrypt('sk-fake-demo-key')
+  const fakeOpenAI1 = encrypt('sk-fake-demo-key-1')
+  const fakeOpenAI2 = encrypt('sk-fake-demo-key-2')
 
-  const openAiVault = await db.apiKeyVault.create({
+  const openAiVault1 = await db.apiKeyVault.create({
     data: {
       userId: seller1.id,
       provider: 'openai',
       label: 'Seller1 OpenAI Key',
-      encryptedKey: fakeOpenAI.encryptedKey,
-      iv: fakeOpenAI.iv,
-      authTag: fakeOpenAI.authTag,
+      encryptedKey: fakeOpenAI1.encryptedKey,
+      iv: fakeOpenAI1.iv,
+      authTag: fakeOpenAI1.authTag,
       isValid: true,
     },
   })
 
-  const anthropicVault = await db.apiKeyVault.create({
+  const openAiVault2 = await db.apiKeyVault.create({
     data: {
       userId: seller2.id,
-      provider: 'anthropic',
-      label: 'Seller2 Anthropic Key',
-      encryptedKey: fakeAnthropic.encryptedKey,
-      iv: fakeAnthropic.iv,
-      authTag: fakeAnthropic.authTag,
+      provider: 'openai',
+      label: 'Seller2 OpenAI Key',
+      encryptedKey: fakeOpenAI2.encryptedKey,
+      iv: fakeOpenAI2.iv,
+      authTag: fakeOpenAI2.authTag,
       isValid: true,
     },
   })
@@ -53,7 +53,7 @@ async function main() {
   await db.listing.create({
     data: {
       sellerId: seller1.id,
-      vaultId: openAiVault.id,
+      vaultId: openAiVault1.id,
       provider: 'openai',
       model: 'gpt-4o',
       tokensForSale: 2_000_000,
@@ -66,7 +66,7 @@ async function main() {
   const listingMini = await db.listing.create({
     data: {
       sellerId: seller1.id,
-      vaultId: openAiVault.id,
+      vaultId: openAiVault1.id,
       provider: 'openai',
       model: 'gpt-4o-mini',
       tokensForSale: 5_000_000,
@@ -79,12 +79,25 @@ async function main() {
   await db.listing.create({
     data: {
       sellerId: seller2.id,
-      vaultId: anthropicVault.id,
-      provider: 'anthropic',
-      model: 'claude-3-5-sonnet-20241022',
+      vaultId: openAiVault2.id,
+      provider: 'openai',
+      model: 'gpt-4-turbo',
       tokensForSale: 1_000_000,
       tokensRemaining: 1_000_000,
-      pricePerMillionTokens: 1.8,
+      pricePerMillionTokens: 6.0,
+      status: 'active',
+    },
+  })
+
+  await db.listing.create({
+    data: {
+      sellerId: seller2.id,
+      vaultId: openAiVault2.id,
+      provider: 'openai',
+      model: 'gpt-3.5-turbo',
+      tokensForSale: 10_000_000,
+      tokensRemaining: 10_000_000,
+      pricePerMillionTokens: 0.3,
       status: 'active',
     },
   })

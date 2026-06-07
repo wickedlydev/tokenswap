@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { toPurchaseDetailDTO } from '@/lib/serializers'
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -12,8 +13,9 @@ export async function GET(
   }
 
   try {
+    const { id } = await params
     const purchase = await db.purchase.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { listing: { select: { provider: true, model: true } } },
     })
 
@@ -21,19 +23,7 @@ export async function GET(
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    return NextResponse.json({
-      data: {
-        id: purchase.id,
-        listingId: purchase.listingId,
-        proxyKey: `ts-${purchase.proxyKey}`,
-        tokensPurchased: purchase.tokensPurchased,
-        tokensRemaining: purchase.tokensRemaining,
-        totalPaidCents: purchase.totalPaidCents,
-        status: purchase.status,
-        createdAt: purchase.createdAt.toISOString(),
-        listing: purchase.listing,
-      },
-    })
+    return NextResponse.json({ data: toPurchaseDetailDTO(purchase) })
   } catch (error) {
     console.error('[PURCHASE_GET]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

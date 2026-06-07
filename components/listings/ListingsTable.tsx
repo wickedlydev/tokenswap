@@ -82,7 +82,7 @@ export function ListingsTable({ listings }: { listings: ListingItem[] }) {
         duration: 3000,
       })
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setWorkingId(null)
@@ -106,7 +106,7 @@ export function ListingsTable({ listings }: { listings: ListingItem[] }) {
       toast.success('Price updated', { duration: 3000 })
       setEditing(null)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setWorkingId(null)
@@ -126,7 +126,7 @@ export function ListingsTable({ listings }: { listings: ListingItem[] }) {
       }
       toast.success('Listing deleted', { duration: 3000 })
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setWorkingId(null)
@@ -135,14 +135,14 @@ export function ListingsTable({ listings }: { listings: ListingItem[] }) {
 
   if (listings.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-10 text-center text-sm text-zinc-500">
+      <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
         No listings yet. Create your first listing to start earning.
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white">
+    <div className="rounded-xl border border-border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
@@ -165,18 +165,18 @@ export function ListingsTable({ listings }: { listings: ListingItem[] }) {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <ProviderBadge provider={listing.provider} />
-                    <span className="text-sm font-medium text-zinc-900">{listing.model}</span>
+                    <span className="text-sm font-medium text-foreground">{listing.model}</span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="text-xs text-zinc-500">
+                    <div className="text-xs text-muted-foreground">
                       {listing.tokensRemaining.toLocaleString()} / {listing.tokensForSale.toLocaleString()}
                     </div>
                     <Progress value={Math.max(0, Math.min(100, percent))} className="h-2" />
                   </div>
                 </TableCell>
-                <TableCell className="text-sm font-medium text-zinc-900">
+                <TableCell className="text-sm font-medium text-foreground">
                   {formatCurrency(listing.pricePerMillionTokens)}
                 </TableCell>
                 <TableCell>

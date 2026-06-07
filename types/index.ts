@@ -1,4 +1,4 @@
-export type Provider = 'openai' | 'anthropic' | 'groq'
+export type Provider = 'openai'
 export type ListingStatus = 'active' | 'paused' | 'depleted' | 'cancelled'
 export type PurchaseStatus = 'pending' | 'active' | 'depleted' | 'refunded'
 

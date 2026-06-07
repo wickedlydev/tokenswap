@@ -9,6 +9,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Race window: pre-checks below are best-effort. The webhook is the source of
+  // truth — if the listing is paused/depleted/cancelled between checkout and
+  // webhook, the webhook creates the Purchase as `pending_refund`.
+
   try {
     const body = (await request.json()) as { listingId?: string; tokenAmount?: number }
     const listingId = body.listingId

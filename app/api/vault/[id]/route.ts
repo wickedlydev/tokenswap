@@ -3,8 +3,8 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -12,7 +12,7 @@ export async function DELETE(
   }
 
   try {
-    const { id } = params
+    const { id } = await params
 
     const vault = await db.apiKeyVault.findUnique({ where: { id } })
     if (!vault || vault.userId !== session.user.id) {

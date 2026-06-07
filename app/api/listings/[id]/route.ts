@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { toListingDTO } from '@/lib/serializers'
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     const listing = await db.listing.findUnique({
       where: { id },
@@ -19,17 +20,7 @@ export async function GET(
     }
 
     return NextResponse.json({
-      data: {
-        id: listing.id,
-        provider: listing.provider,
-        model: listing.model,
-        tokensForSale: listing.tokensForSale,
-        tokensRemaining: listing.tokensRemaining,
-        pricePerMillionTokens: listing.pricePerMillionTokens,
-        status: listing.status,
-        createdAt: listing.createdAt.toISOString(),
-        sellerName: listing.seller.name ?? 'Anonymous',
-      },
+      data: toListingDTO(listing, listing.seller.name ?? 'Anonymous'),
     })
   } catch (error) {
     console.error('[LISTING_GET]', error)
@@ -39,7 +30,7 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -47,7 +38,7 @@ export async function PATCH(
   }
 
   try {
-    const { id } = params
+    const { id } = await params
     const listing = await db.listing.findUnique({ where: { id } })
 
     if (!listing || listing.sellerId !== session.user.id) {
@@ -84,19 +75,7 @@ export async function PATCH(
       data: updates,
     })
 
-    return NextResponse.json({
-      data: {
-        id: updated.id,
-        provider: updated.provider,
-        model: updated.model,
-        tokensForSale: updated.tokensForSale,
-        tokensRemaining: updated.tokensRemaining,
-        pricePerMillionTokens: updated.pricePerMillionTokens,
-        status: updated.status,
-        createdAt: updated.createdAt.toISOString(),
-        sellerName: null,
-      },
-    })
+    return NextResponse.json({ data: toListingDTO(updated, null) })
   } catch (error) {
     console.error('[LISTING_PATCH]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -104,8 +83,8 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -113,7 +92,7 @@ export async function DELETE(
   }
 
   try {
-    const { id } = params
+    const { id } = await params
     const listing = await db.listing.findUnique({ where: { id } })
 
     if (!listing || listing.sellerId !== session.user.id) {
@@ -136,19 +115,7 @@ export async function DELETE(
       data: { status: 'cancelled' },
     })
 
-    return NextResponse.json({
-      data: {
-        id: updated.id,
-        provider: updated.provider,
-        model: updated.model,
-        tokensForSale: updated.tokensForSale,
-        tokensRemaining: updated.tokensRemaining,
-        pricePerMillionTokens: updated.pricePerMillionTokens,
-        status: updated.status,
-        createdAt: updated.createdAt.toISOString(),
-        sellerName: null,
-      },
-    })
+    return NextResponse.json({ data: toListingDTO(updated, null) })
   } catch (error) {
     console.error('[LISTING_DELETE]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

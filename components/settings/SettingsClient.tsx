@@ -65,7 +65,7 @@ export function SettingsClient({ name, email }: SettingsClientProps) {
       }
       toast.success('Profile updated', { duration: 3000 })
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setProfileLoading(false)
@@ -90,7 +90,7 @@ export function SettingsClient({ name, email }: SettingsClientProps) {
       }
       toast.success('Password updated', { duration: 3000 })
       passwordForm.reset()
-    } catch (error) {
+    } catch {
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setPasswordLoading(false)
@@ -111,7 +111,7 @@ export function SettingsClient({ name, email }: SettingsClientProps) {
         return
       }
       router.push('/register')
-    } catch (error) {
+    } catch {
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setDeleting(false)
@@ -121,15 +121,15 @@ export function SettingsClient({ name, email }: SettingsClientProps) {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Settings</h1>
-        <p className="mt-1 text-zinc-500">Manage your profile and security.</p>
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="mt-1 text-muted-foreground">Manage your profile and security.</p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Profile</h2>
+      <section className="rounded-2xl border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold text-foreground">Profile</h2>
         <form className="mt-4 space-y-4" onSubmit={profileForm.handleSubmit(handleProfileSubmit)}>
           <div>
-            <label className="text-sm font-medium text-zinc-700">Name</label>
+            <label className="text-sm font-medium text-foreground">Name</label>
             <Input className="mt-1" {...profileForm.register('name')} />
             {profileForm.formState.errors.name && (
               <p className="mt-1 text-xs text-rose-500">
@@ -138,10 +138,10 @@ export function SettingsClient({ name, email }: SettingsClientProps) {
             )}
           </div>
           <div>
-            <label className="text-sm font-medium text-zinc-700">Email</label>
+            <label className="text-sm font-medium text-foreground">Email</label>
             <div className="relative mt-1">
               <Input value={email} readOnly className="pr-10" />
-              <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+              <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
           </div>
           <Button type="submit" disabled={profileLoading}>
@@ -156,11 +156,11 @@ export function SettingsClient({ name, email }: SettingsClientProps) {
         </form>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Change password</h2>
+      <section className="rounded-2xl border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold text-foreground">Change password</h2>
         <form className="mt-4 space-y-4" onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}>
           <div>
-            <label className="text-sm font-medium text-zinc-700">Current password</label>
+            <label className="text-sm font-medium text-foreground">Current password</label>
             <Input type="password" className="mt-1" {...passwordForm.register('currentPassword')} />
             {passwordForm.formState.errors.currentPassword && (
               <p className="mt-1 text-xs text-rose-500">
@@ -169,7 +169,7 @@ export function SettingsClient({ name, email }: SettingsClientProps) {
             )}
           </div>
           <div>
-            <label className="text-sm font-medium text-zinc-700">New password</label>
+            <label className="text-sm font-medium text-foreground">New password</label>
             <Input type="password" className="mt-1" {...passwordForm.register('newPassword')} />
             {passwordForm.formState.errors.newPassword && (
               <p className="mt-1 text-xs text-rose-500">
@@ -178,7 +178,7 @@ export function SettingsClient({ name, email }: SettingsClientProps) {
             )}
           </div>
           <div>
-            <label className="text-sm font-medium text-zinc-700">Confirm password</label>
+            <label className="text-sm font-medium text-foreground">Confirm password</label>
             <Input type="password" className="mt-1" {...passwordForm.register('confirmPassword')} />
             {passwordForm.formState.errors.confirmPassword && (
               <p className="mt-1 text-xs text-rose-500">

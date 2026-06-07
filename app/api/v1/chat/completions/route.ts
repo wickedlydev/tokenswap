@@ -1,19 +1,76 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { decrypt } from '@/lib/crypto'
+import { checkRateLimit } from '@/lib/proxy'
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+const MAX_BODY_BYTES = 1_000_000
 
-function checkRateLimit(proxyKey: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(proxyKey)
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(proxyKey, { count: 1, resetAt: now + 60_000 })
-    return true
+function openaiError(status: number, message: string, type: string, code?: string) {
+  return NextResponse.json({ error: { message, type, ...(code ? { code } : {}) } }, { status })
+}
+
+async function readBodyWithCap(request: NextRequest) {
+  const raw = await request.text()
+  if (raw.length > MAX_BODY_BYTES) {
+    return { error: openaiError(413, 'Request body too large', 'invalid_request_error') } as const
   }
-  if (entry.count >= 60) return false
-  entry.count++
-  return true
+  try {
+    return { body: JSON.parse(raw) as Record<string, unknown> } as const
+  } catch {
+    return { error: openaiError(400, 'Invalid JSON body', 'invalid_request_error') } as const
+  }
+}
+
+async function applyTokenUsage(
+  purchaseId: string,
+  totalTokens: number,
+  promptTokens: number,
+  completionTokens: number,
+  model: string,
+  duration: number
+) {
+  if (totalTokens <= 0) return { applied: false, reason: 'no_usage' as const }
+
+  return db.$transaction(async (tx) => {
+    const updated = await tx.purchase.updateMany({
+      where: {
+        id: purchaseId,
+        status: 'active',
+        tokensRemaining: { gte: totalTokens },
+      },
+      data: { tokensRemaining: { decrement: totalTokens } },
+    })
+
+    if (updated.count === 0) {
+      return { applied: false, reason: 'race' as const }
+    }
+
+    await tx.usageLog.create({
+      data: {
+        purchaseId,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        model,
+        requestDurationMs: duration,
+      },
+    })
+
+    const fresh = await tx.purchase.findUnique({
+      where: { id: purchaseId },
+      select: { tokensRemaining: true },
+    })
+    if (fresh && fresh.tokensRemaining <= 0) {
+      await tx.purchase.update({
+        where: { id: purchaseId },
+        data: { status: 'depleted' },
+      })
+    }
+    return { applied: true, reason: 'ok' as const }
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -25,98 +82,60 @@ export async function POST(request: NextRequest) {
     : null
 
   if (!proxyKey) {
-    return NextResponse.json(
-      {
-        error: {
-          message: 'Missing or invalid Authorization header. Use: Bearer ts-<proxyKey>',
-          type: 'auth_error',
-        },
-      },
-      { status: 401 }
-    )
+    return openaiError(401, 'Missing or invalid Authorization header. Use: Bearer ts-<proxyKey>', 'auth_error')
   }
 
   if (!checkRateLimit(proxyKey)) {
-    return NextResponse.json(
-      {
-        error: {
-          message: 'Rate limit exceeded. Max 60 requests/minute.',
-          type: 'rate_limit_error',
-        },
-      },
-      { status: 429 }
-    )
+    return openaiError(429, 'Rate limit exceeded. Max 60 requests/minute.', 'rate_limit_error')
   }
 
   const purchase = await db.purchase.findUnique({
     where: { proxyKey },
     include: {
       listing: {
-        include: { vault: { select: { encryptedKey: true, iv: true, authTag: true, provider: true } } },
+        include: {
+          vault: { select: { encryptedKey: true, iv: true, authTag: true, provider: true } },
+        },
       },
     },
   })
 
   if (!purchase) {
-    return NextResponse.json(
-      { error: { message: 'Invalid proxy key', type: 'auth_error' } },
-      { status: 401 }
-    )
+    return openaiError(401, 'Invalid proxy key', 'auth_error')
   }
 
   if (purchase.status !== 'active') {
-    return NextResponse.json(
-      {
-        error: {
-          message: `Proxy key is ${purchase.status}. Purchase more tokens to continue.`,
-          type: 'quota_error',
-        },
-      },
-      { status: 402 }
+    return openaiError(
+      402,
+      `Proxy key is ${purchase.status}. Purchase more tokens to continue.`,
+      'quota_error'
     )
   }
 
   if (purchase.tokensRemaining <= 0) {
     await db.purchase.update({ where: { id: purchase.id }, data: { status: 'depleted' } })
-    return NextResponse.json(
-      { error: { message: 'Token quota exhausted. Purchase more tokens.', type: 'quota_error' } },
-      { status: 402 }
-    )
+    return openaiError(402, 'Token quota exhausted. Purchase more tokens.', 'quota_error')
+  }
+
+  const parsed = await readBodyWithCap(request)
+  if ('error' in parsed) return parsed.error
+  const body = parsed.body
+
+  body.model = purchase.listing.model
+  const isStreaming = body.stream === true
+  if (isStreaming) {
+    body.stream_options = { ...(body.stream_options as object | undefined), include_usage: true }
   }
 
   const { vault } = purchase.listing
   const realKey = decrypt(vault.encryptedKey, vault.iv, vault.authTag)
 
-  let body: Record<string, unknown>
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: { message: 'Invalid JSON body' } }, { status: 400 })
-  }
-
-  body.model = purchase.listing.model
-
-  const isStreaming = body.stream === true
-
-  const provider = purchase.listing.vault.provider
-  const forwardHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (provider === 'openai') {
-    forwardHeaders['Authorization'] = `Bearer ${realKey}`
-  } else if (provider === 'anthropic') {
-    forwardHeaders['x-api-key'] = realKey
-    forwardHeaders['anthropic-version'] = '2023-06-01'
-  }
-
-  const providerUrl =
-    provider === 'openai'
-      ? 'https://api.openai.com/v1/chat/completions'
-      : 'https://api.anthropic.com/v1/messages'
-
-  const upstream = await fetch(providerUrl, {
+  const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: forwardHeaders,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${realKey}`,
+    },
     body: JSON.stringify(body),
   })
 
@@ -129,86 +148,78 @@ export async function POST(request: NextRequest) {
       const completionTokens = data.usage.completion_tokens ?? 0
       const totalTokens = promptTokens + completionTokens
 
-      await db.$transaction([
-        db.usageLog.create({
-          data: {
-            purchaseId: purchase.id,
-            promptTokens,
-            completionTokens,
-            totalTokens,
-            model: purchase.listing.model,
-            requestDurationMs: duration,
-          },
-        }),
-        db.purchase.update({
-          where: { id: purchase.id },
-          data: { tokensRemaining: { decrement: totalTokens } },
-        }),
-      ])
+      const result = await applyTokenUsage(
+        purchase.id,
+        totalTokens,
+        promptTokens,
+        completionTokens,
+        purchase.listing.model,
+        duration
+      )
 
-      if (purchase.tokensRemaining - totalTokens <= 0) {
-        await db.purchase.update({
-          where: { id: purchase.id },
-          data: { status: 'depleted' },
-        })
+      if (!result.applied && result.reason === 'race') {
+        console.warn('[PROXY_RACE]', { purchaseId: purchase.id, totalTokens })
       }
     }
 
     return NextResponse.json(data, { status: upstream.status })
   }
 
-  const encoder = new TextEncoder()
   let promptTokens = 0
   let completionTokens = 0
-  let usageLogged = false
+  let usageRecorded = false
+  let sseBuffer = ''
 
-  const stream = new TransformStream({
+  const stream = new TransformStream<Uint8Array, Uint8Array>({
     transform(chunk, controller) {
-      const text = new TextDecoder().decode(chunk)
-      const lines = text.split('\n')
-      for (const line of lines) {
-        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-          try {
-            const parsed = JSON.parse(line.slice(6)) as {
-              usage?: { prompt_tokens?: number; completion_tokens?: number }
-            }
-            if (parsed.usage) {
-              promptTokens = parsed.usage.prompt_tokens ?? 0
-              completionTokens = parsed.usage.completion_tokens ?? 0
-            }
-          } catch {
-            // ignore parse errors on streaming chunks
+      sseBuffer += new TextDecoder().decode(chunk)
+      const events = sseBuffer.split('\n\n')
+      sseBuffer = events.pop() ?? ''
+
+      for (const event of events) {
+        const dataLine = event.split('\n').find((line) => line.startsWith('data: '))
+        if (!dataLine) continue
+        const payload = dataLine.slice(6).trim()
+        if (payload === '[DONE]') continue
+        try {
+          const parsedChunk = JSON.parse(payload) as {
+            usage?: { prompt_tokens?: number; completion_tokens?: number }
           }
+          if (parsedChunk.usage) {
+            promptTokens = parsedChunk.usage.prompt_tokens ?? promptTokens
+            completionTokens = parsedChunk.usage.completion_tokens ?? completionTokens
+          }
+        } catch {
+          // not JSON; non-fatal
         }
       }
       controller.enqueue(chunk)
     },
     async flush() {
-      if (!usageLogged && promptTokens + completionTokens > 0) {
-        usageLogged = true
-        const totalTokens = promptTokens + completionTokens
-        const duration = Date.now() - startTime
-        await db.$transaction([
-          db.usageLog.create({
-            data: {
-              purchaseId: purchase.id,
-              promptTokens,
-              completionTokens,
-              totalTokens,
-              model: purchase.listing.model,
-              requestDurationMs: duration,
-            },
-          }),
-          db.purchase.update({
-            where: { id: purchase.id },
-            data: { tokensRemaining: { decrement: totalTokens } },
-          }),
-        ])
+      if (usageRecorded) return
+      const totalTokens = promptTokens + completionTokens
+      if (totalTokens <= 0) return
+      usageRecorded = true
+      const duration = Date.now() - startTime
+      const result = await applyTokenUsage(
+        purchase.id,
+        totalTokens,
+        promptTokens,
+        completionTokens,
+        purchase.listing.model,
+        duration
+      )
+      if (!result.applied && result.reason === 'race') {
+        console.warn('[PROXY_RACE]', { purchaseId: purchase.id, totalTokens })
       }
     },
   })
 
-  return new Response(upstream.body!.pipeThrough(stream), {
+  if (!upstream.body) {
+    return openaiError(502, 'Upstream returned no body', 'upstream_error')
+  }
+
+  return new Response(upstream.body.pipeThrough(stream), {
     status: upstream.status,
     headers: {
       'Content-Type': 'text/event-stream',

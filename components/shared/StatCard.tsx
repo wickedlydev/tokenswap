@@ -8,10 +8,10 @@ type StatCardProps = {
 
 export function StatCard({ label, value, trend }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-5">
-      <div className="text-sm text-zinc-500">{label}</div>
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="text-sm text-muted-foreground">{label}</div>
       <div className="mt-2 flex items-center gap-3">
-        <span className="text-3xl font-semibold text-zinc-900">{value}</span>
+        <span className="text-3xl font-semibold text-foreground">{value}</span>
         {trend && (
           <span
             className={`inline-flex items-center gap-1 text-xs font-medium ${

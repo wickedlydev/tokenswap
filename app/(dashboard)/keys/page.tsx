@@ -19,16 +19,19 @@ type PurchaseItem = {
 export default async function KeysPage({
   searchParams,
 }: {
-  searchParams?: { success?: string }
+  searchParams?: Promise<{ success?: string }>
 }) {
+  const params = (await searchParams) ?? {}
+  const showSuccess = params.success === 'true'
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const cookieStore = await cookies()
   const res = await fetch(`${appUrl}/api/purchases`, {
     cache: 'no-store',
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: cookieStore.toString() },
   })
   const json = (await res.json()) as { data?: PurchaseItem[] }
   const purchases = res.ok && json.data ? json.data : []
-  const showSuccess = searchParams?.success === 'true'
 
   return <KeysClient purchases={purchases} showSuccess={showSuccess} />
 }

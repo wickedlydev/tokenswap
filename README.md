@@ -1,61 +1,48 @@
 # TokenSwap
 
-A marketplace where people can sell unused AI API credits to buyers via a secure proxy layer. The seller's real API key is never exposed to buyers. Buyers get a proxy API key that routes requests through the seller's account.
+A demo marketplace for AI API credits. Sellers list unused OpenAI credits; buyers purchase access through a secure proxy. The seller's real API key is never exposed.
 
-## How the Proxy Works
+> **Demo posture.** MVP runs in Stripe test mode. No real money. Stripe Connect Express payouts arrive in v2.
 
-- **Key Encryption**: Seller API keys are encrypted with AES-256-GCM and stored securely. The decrypted key is never logged or returned in any API response.
-- **Proxy Routing**: Buyers receive a `ts_` prefixed proxy key. Requests to `/api/v1/chat/completions` are authenticated via this proxy key, then forwarded to the real provider with the decrypted seller key.
-- **Token Accounting**: Every request is logged, and token usage is deducted from the buyer's purchased balance. When tokens reach zero, the proxy key is automatically depleted.
+## Tech
 
-## How to Run Locally
+Next.js 16 · React 19 · Tailwind v4 · shadcn/ui · Prisma · NextAuth v5 · Stripe · AES-256-GCM
 
-```bash
-# Install dependencies
+## Quickstart
+
+```powershell
+git clone <repo>
+cd tokenswap
+cp .env.example .env.local
+# generate ENCRYPTION_KEY
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# paste into .env.local; fill the Stripe keys (test mode) and NEXTAUTH_SECRET
 npm install
-
-# Set up environment variables (copy .env.local and fill in values)
-cp .env.local.example .env.local
-
-# Push database schema
-npx prisma db push
-
-# Seed demo data
+npm run db:push
 npm run seed
-
-# Start dev server
 npm run dev
 ```
 
-## How to Test the Proxy
+In another terminal:
 
-```bash
-# OpenAI-compatible endpoint
-curl -X POST http://localhost:3000/api/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ts_YOUR_PROXY_KEY" \
-  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "Hello"}]}'
+```powershell
+stripe listen --forward-to localhost:3000/api/webhook
 ```
 
-## Environment Variables
+Demo accounts: `seller1@demo.com` / `buyer@demo.com` — password `Demo1234!`.
 
-| Variable | Description |
-|----------|------------|
-| `DATABASE_URL` | SQLite database URL (file:./dev.db) |
-| `NEXTAUTH_SECRET` | Session encryption secret |
-| `NEXTAUTH_URL` | Application URL |
-| `ENCRYPTION_KEY` | 64-char hex string for AES-256-GCM |
-| `STRIPE_SECRET_KEY` | Stripe secret key (test mode) |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
-| `NEXT_PUBLIC_APP_URL` | Public app URL |
+Test card: `4242 4242 4242 4242`, any future expiry, any CVC.
 
-## Tech Stack
+## Env vars
 
-- Next.js 14+ (App Router)
-- TypeScript (strict mode)
-- Tailwind CSS
-- Prisma ORM + SQLite
-- NextAuth.js v5
-- Stripe Payments
-- AES-256-GCM Encryption
+See `.env.example`. All required.
+
+## Deployment
+
+- Vercel for the Next app.
+- Neon / Supabase / Railway for Postgres. Switch `prisma/schema.prisma` `datasource.provider` to `postgresql`. Run `npx prisma migrate deploy` on first deploy.
+- Stripe webhook configured in dashboard pointing at `https://<domain>/api/webhook`. Webhook secret in env.
+
+## Roadmap
+
+See `plan.md`. V2 adds Stripe Connect Express payouts.

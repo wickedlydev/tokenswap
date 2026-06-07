@@ -16,33 +16,6 @@ export const PROVIDERS = {
     },
     headerKey: 'Authorization',
   },
-  anthropic: {
-    name: 'Anthropic',
-    apiUrl: 'https://api.anthropic.com/v1/messages',
-    models: [
-      {
-        id: 'claude-3-5-sonnet-20241022',
-        name: 'Claude 3.5 Sonnet',
-        inputPricePer1M: 3.0,
-        outputPricePer1M: 15.0,
-      },
-      {
-        id: 'claude-3-5-haiku-20241022',
-        name: 'Claude 3.5 Haiku',
-        inputPricePer1M: 0.8,
-        outputPricePer1M: 4.0,
-      },
-      {
-        id: 'claude-3-opus-20240229',
-        name: 'Claude 3 Opus',
-        inputPricePer1M: 15.0,
-        outputPricePer1M: 75.0,
-      },
-    ],
-    suggestedPricePer1M: {
-      'claude-3-5-sonnet-20241022': 1.8,
-      'claude-3-5-haiku-20241022': 0.48,
-      'claude-3-opus-20240229': 9.0,
-    },
-  },
 } as const
+
+export type ProviderId = keyof typeof PROVIDERS

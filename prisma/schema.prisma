@@ -62,7 +62,7 @@ model Purchase {
   tokensRemaining  Int
   totalPaidCents   Int
   platformFeeCents Int
-  stripeSessionId  String?
+  stripeSessionId  String?    @unique
   stripePaymentId  String?
   status           String      @default("pending")
   createdAt        DateTime    @default(now())

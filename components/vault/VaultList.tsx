@@ -62,7 +62,7 @@ export function VaultList({ vaults }: { vaults: VaultItem[] }) {
       }
       toast.success('API key deleted', { duration: 3000 })
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Network error. Please try again.', { duration: 5000 })
     } finally {
       setDeletingId(null)
@@ -71,7 +71,7 @@ export function VaultList({ vaults }: { vaults: VaultItem[] }) {
 
   if (vaults.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-10 text-center text-sm text-zinc-500">
+      <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
         No API keys yet. Add your first key to start selling.
       </div>
     )
@@ -82,13 +82,13 @@ export function VaultList({ vaults }: { vaults: VaultItem[] }) {
       {vaults.map((vault) => (
         <div
           key={vault.id}
-          className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3"
+          className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
         >
           <div className="flex items-center gap-4">
             <ProviderBadge provider={vault.provider} />
             <div>
-              <p className="text-sm font-medium text-zinc-900">{vault.label}</p>
-              <p className="text-xs text-zinc-500">Added {formatRelativeDate(vault.createdAt)}</p>
+              <p className="text-sm font-medium text-foreground">{vault.label}</p>
+              <p className="text-xs text-muted-foreground">Added {formatRelativeDate(vault.createdAt)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

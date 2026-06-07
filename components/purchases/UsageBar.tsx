@@ -15,13 +15,13 @@ export function UsageBar({ tokensPurchased, tokensRemaining }: { tokensPurchased
 
   return (
     <div className="space-y-2">
-      <div className="h-2 w-full rounded-full bg-zinc-200">
+      <div className="h-2 w-full rounded-full bg-muted">
         <div
           className={cn('h-2 rounded-full transition-all', colorClass)}
           style={{ width: `${Math.min(100, Math.max(0, remainingPercent))}%` }}
         />
       </div>
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-muted-foreground">
         {used.toLocaleString()} used · {tokensRemaining.toLocaleString()} remaining
       </p>
     </div>

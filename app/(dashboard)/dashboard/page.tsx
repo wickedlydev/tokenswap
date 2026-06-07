@@ -17,13 +17,13 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Dashboard</h1>
-        <p className="mt-1 text-zinc-500">Welcome back, {data.userName ?? 'there'}</p>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="mt-1 text-muted-foreground">Welcome back, {data.userName ?? 'there'}</p>
       </div>
 
       {data.sellerStats && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-zinc-900">Seller stats</h2>
+          <h2 className="text-lg font-semibold text-foreground">Seller stats</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Total listings" value={data.sellerStats.totalListings.toString()} />
             <StatCard
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
 
       {data.buyerStats && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-zinc-900">Buyer stats</h2>
+          <h2 className="text-lg font-semibold text-foreground">Buyer stats</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Active keys" value={data.buyerStats.activeKeys.toString()} />
             <StatCard
@@ -64,22 +64,22 @@ export default async function DashboardPage() {
       )}
 
       {data.isNewUser && (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Getting started</h2>
-          <div className="mt-4 space-y-3 text-sm text-zinc-600">
-            <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3">
+        <section className="rounded-2xl border border-border bg-card p-6">
+          <h2 className="text-lg font-semibold text-foreground">Getting started</h2>
+          <div className="mt-4 space-y-3 text-sm text-foreground">
+            <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
               <span>Add an API key</span>
               <Link className="text-violet-600" href="/sell">
                 Go →
               </Link>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3">
+            <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
               <span>Create your first listing</span>
               <Link className="text-violet-600" href="/sell">
                 Go →
               </Link>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3 text-zinc-400">
+            <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-muted-foreground">
               <span>Share and earn</span>
               <span>Locked</span>
             </div>
@@ -89,22 +89,22 @@ export default async function DashboardPage() {
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900">Recent activity</h2>
+          <h2 className="text-lg font-semibold text-foreground">Recent activity</h2>
           <Link className="text-sm text-violet-600" href="/buy">
             View marketplace <ArrowRight className="inline h-4 w-4" />
           </Link>
         </div>
         {data.recentActivity.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500">
+          <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
             No activity yet. Once you buy or sell tokens, you will see updates here.
           </div>
         ) : (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <div className="rounded-2xl border border-border bg-card p-6">
             <ul className="space-y-4">
               {data.recentActivity.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-4">
-                  <span className="text-sm text-zinc-700">{item.label}</span>
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-sm text-foreground">{item.label}</span>
+                  <span className="text-xs text-muted-foreground">
                     {new Date(item.createdAt).toLocaleString()}
                   </span>
                 </li>

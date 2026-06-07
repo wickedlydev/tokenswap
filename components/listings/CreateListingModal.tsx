@@ -68,8 +68,9 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
   const selectedVault = validVaults.find((vault) => vault.id === form.watch('vaultId'))
   const providerKey = selectedVault?.provider as keyof typeof PROVIDERS | undefined
   const providerConfig = providerKey ? PROVIDERS[providerKey] : undefined
-  const models = providerConfig?.models ?? []
-  const suggestedPrices = providerConfig?.suggestedPricePer1M ?? {}
+  const models: ReadonlyArray<{ id: string; name: string; inputPricePer1M: number; outputPricePer1M: number }> =
+    providerConfig?.models ?? []
+  const suggestedPrices: Record<string, number> = providerConfig?.suggestedPricePer1M ?? {}
 
   const selectedModel = models.find((model) => model.id === form.watch('model'))
   const tokensForSale = form.watch('tokensForSale')
@@ -126,7 +127,7 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
       router.refresh()
       setSubmitting(false)
       setOpen(false)
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
       toast.error('Network error. Please try again.', { duration: 5000 })
       setSubmitting(false)
@@ -146,11 +147,11 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
         {step === 1 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900">Select a vault</h3>
-              <p className="text-sm text-zinc-500">Choose which API key powers this listing.</p>
+              <h3 className="text-lg font-semibold text-foreground">Select a vault</h3>
+              <p className="text-sm text-muted-foreground">Choose which API key powers this listing.</p>
             </div>
             {validVaults.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-10 text-center text-sm text-zinc-500">
+              <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
                 Add a valid API key before creating a listing.
               </div>
             ) : (
@@ -161,15 +162,15 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
                     className={`cursor-pointer border p-4 transition hover:border-violet-300 ${
                       form.watch('vaultId') === vault.id
                         ? 'border-violet-400 bg-violet-50/40'
-                        : 'border-zinc-200'
+                        : 'border-border'
                     }`}
                     onClick={() => form.setValue('vaultId', vault.id)}
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-zinc-900">{vault.label}</p>
+                      <p className="text-sm font-semibold text-foreground">{vault.label}</p>
                       <ProviderBadge provider={vault.provider} />
                     </div>
-                    <p className="mt-1 text-xs text-zinc-500">{vault.provider.toUpperCase()} key</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{vault.provider.toUpperCase()} key</p>
                   </Card>
                 ))}
               </div>
@@ -185,8 +186,8 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
         {step === 2 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900">Select a model</h3>
-              <p className="text-sm text-zinc-500">Pick the model buyers will use.</p>
+              <h3 className="text-lg font-semibold text-foreground">Select a model</h3>
+              <p className="text-sm text-muted-foreground">Pick the model buyers will use.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {models.map((model) => (
@@ -195,7 +196,7 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
                   className={`cursor-pointer border p-4 transition hover:border-violet-300 ${
                     form.watch('model') === model.id
                       ? 'border-violet-400 bg-violet-50/40'
-                      : 'border-zinc-200'
+                      : 'border-border'
                   }`}
                   onClick={() => {
                     form.setValue('model', model.id)
@@ -203,8 +204,8 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
                     if (suggested) form.setValue('pricePerMillionTokens', suggested)
                   }}
                 >
-                  <p className="text-sm font-semibold text-zinc-900">{model.name}</p>
-                  <p className="mt-1 text-xs text-zinc-500">Retail: {formatCurrency(model.inputPricePer1M)}/1M</p>
+                  <p className="text-sm font-semibold text-foreground">{model.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Retail: {formatCurrency(model.inputPricePer1M)}/1M</p>
                   {suggestedPrices[model.id] && (
                     <Badge className="mt-2 bg-violet-100 text-violet-700">
                       Suggested {formatCurrency(suggestedPrices[model.id])}/1M
@@ -227,13 +228,13 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
         {step === 3 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900">Set quantity and price</h3>
-              <p className="text-sm text-zinc-500">
+              <h3 className="text-lg font-semibold text-foreground">Set quantity and price</h3>
+              <p className="text-sm text-muted-foreground">
                 Choose how many tokens you want to sell and your price per 1M tokens.
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-zinc-700">Token quantity</p>
+              <p className="text-sm font-medium text-foreground">Token quantity</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {quickTokenOptions.map((amount) => (
                   <Button
@@ -261,7 +262,7 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
               )}
             </div>
             <div>
-              <p className="text-sm font-medium text-zinc-700">Price per 1M tokens</p>
+              <p className="text-sm font-medium text-foreground">Price per 1M tokens</p>
               <Input
                 className="mt-2"
                 type="number"
@@ -276,10 +277,10 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
                 </p>
               )}
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+            <div className="rounded-xl border border-border bg-muted p-4 text-sm text-foreground">
               <div className="flex items-center justify-between">
                 <span>Buyers pay:</span>
-                <span className="font-medium text-zinc-900">
+                <span className="font-medium text-foreground">
                   {formatCurrency(pricePerMillionTokens)} / 1M tokens
                 </span>
               </div>
@@ -291,7 +292,7 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
               </div>
               <div className="mt-1 flex items-center justify-between">
                 <span>Your earnings:</span>
-                <span className="font-medium text-zinc-900">{formatCurrency(earnings)}</span>
+                <span className="font-medium text-foreground">{formatCurrency(earnings)}</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -308,31 +309,31 @@ export function CreateListingModal({ trigger, vaults }: CreateListingModalProps)
         {step === 4 && (
           <div className="space-y-5">
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900">Review and confirm</h3>
-              <p className="text-sm text-zinc-500">Double-check your listing details.</p>
+              <h3 className="text-lg font-semibold text-foreground">Review and confirm</h3>
+              <p className="text-sm text-muted-foreground">Double-check your listing details.</p>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
+            <div className="rounded-xl border border-border bg-card p-4 text-sm text-foreground">
               <div className="flex items-center justify-between">
                 <span>Provider</span>
                 <ProviderBadge provider={selectedVault?.provider ?? ''} />
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span>Model</span>
-                <span className="font-medium text-zinc-900">{selectedModel?.name}</span>
+                <span className="font-medium text-foreground">{selectedModel?.name}</span>
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span>Tokens for sale</span>
-                <span className="font-medium text-zinc-900">{tokensForSale.toLocaleString()}</span>
+                <span className="font-medium text-foreground">{tokensForSale.toLocaleString()}</span>
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span>Price per 1M</span>
-                <span className="font-medium text-zinc-900">
+                <span className="font-medium text-foreground">
                   {formatCurrency(pricePerMillionTokens)}
                 </span>
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span>Earnings after fee</span>
-                <span className="font-medium text-zinc-900">{formatCurrency(earnings)}</span>
+                <span className="font-medium text-foreground">{formatCurrency(earnings)}</span>
               </div>
             </div>
             {error && <p className="text-sm text-rose-500">{error}</p>}

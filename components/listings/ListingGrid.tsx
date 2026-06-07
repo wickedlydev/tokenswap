@@ -70,17 +70,34 @@ export function ListingGrid({ listings }: { listings: ListingWithStats[] }) {
     return result
   }, [filters, listings])
 
+  const isFiltered =
+    filters.provider !== 'all' ||
+    filters.model !== 'all' ||
+    filters.maxPrice !== '' ||
+    filters.minTokens !== '' ||
+    filters.sort !== 'price_asc'
+
   return (
     <div className="space-y-6">
       <ListingFilters filters={filters} models={models} onChange={setFilters} />
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-16 text-center">
-          <p className="text-lg font-semibold text-zinc-900">No listings available</p>
-          <p className="mt-2 text-sm text-zinc-500">Be the first to sell API credits.</p>
-          <Button asChild className="mt-4">
-            <Link href="/sell">Be the first to sell</Link>
-          </Button>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+          <p className="text-lg font-semibold text-foreground">No listings available</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {isFiltered
+              ? 'No listings match your filters. Try clearing them.'
+              : 'Be the first to sell API credits.'}
+          </p>
+          {isFiltered ? (
+            <Button className="mt-4" onClick={() => setFilters(defaultFilters)}>
+              Clear filters
+            </Button>
+          ) : (
+            <Button asChild className="mt-4">
+              <Link href="/sell">Be the first to sell</Link>
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

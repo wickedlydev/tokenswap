@@ -16,15 +16,15 @@ export default function GlobalError({
   }, [error])
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 px-6 text-center">
-      <h1 className="text-2xl font-semibold text-zinc-900">Something went wrong</h1>
-      <p className="max-w-md text-sm text-zinc-500">
-        An unexpected error occurred. Try again, or return to your dashboard.
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+      <h1 className="text-2xl font-semibold text-foreground">Something went wrong</h1>
+      <p className="max-w-md text-sm text-muted-foreground">
+        We hit an unexpected error. You can try again, or head back to the homepage.
       </p>
       <div className="flex gap-3">
         <Button onClick={reset}>Try again</Button>
         <Button variant="outline" asChild>
-          <Link href="/dashboard">Go to dashboard</Link>
+          <Link href="/">Go home</Link>
         </Button>
       </div>
     </div>
